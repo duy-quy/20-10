@@ -18,7 +18,7 @@
 
     <!-- Meta Open Graph -->
     <meta property="og:title" content="Chúc Mừng 20/10 🌹">
-    <meta property="og:description" content="Ngon thì bấm vào">
+    <meta property="og:description" content="Một món quà đặc biệt gửi trọn yêu thương đến bạn...">
     <meta property="og:image" content="anh-preview.jpg">
 </head>
 <body>
@@ -39,7 +39,7 @@
             <div class="intro-ring" style="animation-delay: 1.2s;"></div>
         </div>
         <div class="intro-hint">
-            <i class="fas fa-wand-magic-sparkles"></i> Bấm vào đây
+            <i class="fas fa-wand-magic-sparkles"></i> Chạm để mở món quà bí mật 20/10 ✨
         </div>
     </div>
 
@@ -109,7 +109,11 @@
     </div>
 
     <!-- 6. Nút thông báo bật nhạc tinh tế (nếu trình duyệt chặn autoplay) -->
-
+    <div id="music-player-note">
+        <i class="fas fa-music"></i>
+        <span>Chạm vào đây để bật nhạc 50%</span>
+        <i class="fas fa-arrow-right"></i>
+    </div>
     
     <script>
         /* =========================================================================
@@ -816,7 +820,7 @@
         });
 
         // Nạp bài hát & áp dụng startTime chuẩn xác
-        function loadSong(index, shouldPlay = false) {
+function loadSong(index, shouldPlay = false) {
             currentSongIndex = (index + playlist.length) % playlist.length;
             const song = playlist[currentSongIndex];
             
@@ -825,36 +829,33 @@
             progressBarFill.style.width = '0%';
             currentTimeEl.textContent = formatTime(song.startTime || 0);
 
-            // Gán nguồn audio mới
+            // Gán nguồn nhạc
             audioPlayer.src = song.src;
-            audioPlayer.load();
 
-            let hasAppliedStart = false;
-            const onReady = () => {
-                if (!hasAppliedStart) {
-                    hasAppliedStart = true;
-                    const start = song.startTime || 0;
-                    if (start > 0 && start < audioPlayer.duration) {
-                        audioPlayer.currentTime = start;
-                    }
-                    totalDurationEl.textContent = formatTime(audioPlayer.duration);
-                    currentTimeEl.textContent = formatTime(audioPlayer.currentTime);
-                    
-                    if (shouldPlay) {
-                        playMusic();
-                    }
+            const onMetadataLoaded = () => {
+                const start = song.startTime || 0;
+                if (start > 0 && start < audioPlayer.duration) {
+                    audioPlayer.currentTime = start;
                 }
-                audioPlayer.removeEventListener('loadedmetadata', onReady);
-                audioPlayer.removeEventListener('canplay', onReady);
+                totalDurationEl.textContent = formatTime(audioPlayer.duration);
+                currentTimeEl.textContent = formatTime(audioPlayer.currentTime);
+                
+                if (shouldPlay) {
+                    playMusic();
+                }
+                audioPlayer.removeEventListener('loadedmetadata', onMetadataLoaded);
             };
 
-            audioPlayer.addEventListener('loadedmetadata', onReady);
-            audioPlayer.addEventListener('canplay', onReady);
+            // Chỉ cần lắng nghe loadedmetadata (rất nhanh, chỉ mất vài KB)
+            if (audioPlayer.readyState >= 1) {
+                onMetadataLoaded();
+            } else {
+                audioPlayer.addEventListener('loadedmetadata', onMetadataLoaded);
+            }
         }
 
-        // Phát nhạc an toàn với Promise handler
+        // Phát nhạc an toàn
         function playMusic() {
-            // Đảm bảo mức âm lượng chuẩn 50%
             if (audioPlayer.volume === 0 && lastVolume > 0) {
                 audioPlayer.volume = lastVolume;
             } else if (audioPlayer.volume === 0) {
@@ -872,6 +873,21 @@
                     showNote();
                 });
             }
+        }
+    // Tự động phát nhạc sau khi hoàn thành Intro
+        function playMusicWithCustomStart() {
+            const song = playlist[currentSongIndex];
+            const start = song.startTime || 0;
+            
+            if (start > 0 && audioPlayer.currentTime !== start) {
+                try {
+                    audioPlayer.currentTime = start;
+                } catch (e) {
+                    console.log("Đang chờ stream audio...");
+                }
+            }
+            playMusic();
+            enableAutoplayUnlock();
         }
 
         // Dừng nhạc hoàn toàn
